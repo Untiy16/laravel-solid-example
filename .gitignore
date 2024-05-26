@@ -3,9 +3,11 @@
 /public/build
 /public/hot
 /public/storage
+/public/adminer.php
 /storage/*.key
 /vendor
 .env
+.env.testing
 .env.backup
 .env.production
 .phpunit.result.cache
