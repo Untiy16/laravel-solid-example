@@ -4,10 +4,7 @@ namespace Tests\Feature;
 
 use App\Enums\ReportType;
 use App\Models\Department;
-use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Foundation\Testing\WithFaker;
-use Illuminate\Support\Facades\Config;
 use PHPUnit\Framework\Attributes\DataProvider;
 use Tests\TestCase;
 
@@ -32,6 +29,32 @@ class DepartmentControllerTest extends TestCase
             'address',
         ]
     ];
+
+    public static function invalidDepartmentData(): array
+    {
+        return [
+            [['name' => '', 'address' => ''], ['name', 'address']],
+            [['address' => ''], ['name', 'address']],
+            [['name' => ''], ['name', 'address']],
+            [[], ['name', 'address']],
+            [['name' => 'validName'], ['address']],
+            [['address' => 'Suite 246 81515 Osinski Manor, East Luke, TX 59690-4605'], ['name']],
+            [['name' => 'validName', 'address' => 'a'], ['address']],
+            [['name' => 'n', 'address' => 'Suite 246 81515 Osinski Manor, East Luke, TX 59690-4605'], ['name']],
+            [['name' => 'validName', 'address' => 'Suite 246 81515 Osinski Manor, East Luke, TX 59690-4605Suite 246 81515 Osinski Manor, East Luke, TX 59690-4605Suite 246 81515 Osinski Manor, East Luke, TX 59690-4605Suite 246 81515 Osinski Manor, East Luke, TX 59690-4605Suite 246 81515 Osinski Manor, East Luke, TX 59690-4605'], ['address']],
+        ];
+    }
+        public static function reportTypes(): array
+    {
+        return array_map(fn($i) => [$i], array_column(ReportType::cases(), 'value'));
+    }
+
+    public static function validDepartmentData(): array
+    {
+        return [
+            [['name' => 'validName', 'address' => 'Suite 246 81515 Osinski Manor, East Luke, TX 59690-4605']],
+        ];
+    }
 
     public function test_get_empty_departments_list(): void
     {
@@ -58,7 +81,9 @@ class DepartmentControllerTest extends TestCase
         $url = '/api/departments/1';
 
         $response = $this->getJson($url);
-        $response->assertNotFound();
+        $response
+            ->assertNotFound()
+            ->assertJsonStructure(['message']);
     }
 
     public function test_get_existent_department_by_id()
@@ -72,27 +97,6 @@ class DepartmentControllerTest extends TestCase
     }
 
 
-    public static function invalidDepartmentData(): array
-    {
-        return [
-            [['name' => '', 'address' => ''], ['name', 'address']],
-            [['address' => ''], ['name', 'address']],
-            [['name' => ''], ['name', 'address']],
-            [[], ['name', 'address']],
-            [['name' => 'validName'], ['address']],
-            [['address' => 'Suite 246 81515 Osinski Manor, East Luke, TX 59690-4605'], ['name']],
-            [['name' => 'validName', 'address' => 'a'], ['address']],
-            [['name' => 'n', 'address' => 'Suite 246 81515 Osinski Manor, East Luke, TX 59690-4605'], ['name']],
-            [['name' => 'validName', 'address' => 'Suite 246 81515 Osinski Manor, East Luke, TX 59690-4605Suite 246 81515 Osinski Manor, East Luke, TX 59690-4605Suite 246 81515 Osinski Manor, East Luke, TX 59690-4605Suite 246 81515 Osinski Manor, East Luke, TX 59690-4605Suite 246 81515 Osinski Manor, East Luke, TX 59690-4605'], ['address']],
-        ];
-    }
-
-    public static function validDepartmentData(): array
-    {
-        return [
-            [['name' => 'validName', 'address' => 'Suite 246 81515 Osinski Manor, East Luke, TX 59690-4605']],
-        ];
-    }
     #[DataProvider('invalidDepartmentData')]
     public function test_create_department_with_invalid_data($data, $fields): void
     {
@@ -117,7 +121,18 @@ class DepartmentControllerTest extends TestCase
 
         $response = $this->putJson($url, $data);
 
-        $response->assertNotFound();
+        $response
+            ->assertNotFound()
+            ->assertJsonStructure(['message']);
+    }
+
+    #[DataProvider('validDepartmentData')]
+    public function test_update_existent_department($data)
+    {
+        $department = Department::factory()->create();
+
+        $response = $this->putJson("/api/departments/$department->id", $data);
+        $response->assertNoContent();
     }
 
     #[DataProvider('invalidDepartmentData')]
@@ -135,7 +150,10 @@ class DepartmentControllerTest extends TestCase
     public function test_delete_non_existent_department()
     {
         $response = $this->deleteJson('/api/departments/1');
-        $response->assertNotFound();
+        $response
+            ->assertNotFound()
+            ->assertJsonStructure(['message']);
+
 //        $this->assertThrows(
 //            fn () => $this->withoutExceptionHandling()->deleteJson($url),
 //            ModelNotFoundException::class
@@ -177,10 +195,5 @@ class DepartmentControllerTest extends TestCase
                 'rows',
                 'summary'
             ]);
-    }
-
-    public static function reportTypes(): array
-    {
-        return array_map(fn($i) => [$i], array_column(ReportType::cases(), 'value'));
     }
 }
