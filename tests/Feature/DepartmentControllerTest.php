@@ -4,7 +4,9 @@ namespace Tests\Feature;
 
 use App\Enums\ReportType;
 use App\Models\Department;
+use App\Repositories\DepartmentRepository;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Mockery\MockInterface;
 use PHPUnit\Framework\Attributes\DataProvider;
 use Tests\TestCase;
 
@@ -44,7 +46,7 @@ class DepartmentControllerTest extends TestCase
             [['name' => 'validName', 'address' => 'Suite 246 81515 Osinski Manor, East Luke, TX 59690-4605Suite 246 81515 Osinski Manor, East Luke, TX 59690-4605Suite 246 81515 Osinski Manor, East Luke, TX 59690-4605Suite 246 81515 Osinski Manor, East Luke, TX 59690-4605Suite 246 81515 Osinski Manor, East Luke, TX 59690-4605'], ['address']],
         ];
     }
-        public static function reportTypes(): array
+    public static function reportTypes(): array
     {
         return array_map(fn($i) => [$i], array_column(ReportType::cases(), 'value'));
     }
@@ -63,6 +65,23 @@ class DepartmentControllerTest extends TestCase
             ->assertStatus(200)
             ->assertJsonStructure($this->departmentJsonStructureMultiple)
             ->assertJsonCount(0, 'data');
+    }
+
+    public function test_get_empty_departments_list_using_mock(): void
+    {
+        $this->mock(DepartmentRepository::class)
+            ->shouldReceive('findAll')
+            ->once()
+            ->andReturn(Department::hydrate([
+                ['id' => 1, 'name' => 'name1', 'address' => 'address1'],
+                ['id' => 2, 'name' => 'name2', 'address' => 'address2'],
+            ]));
+
+        $response = $this->getJson('/api/departments');
+        $response
+            ->assertStatus(200)
+            ->assertJsonStructure($this->departmentJsonStructureMultiple)
+            ->assertJsonCount(2, 'data');
     }
 
     public function test_get_not_empty_departments_list(): void
